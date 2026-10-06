@@ -28,9 +28,19 @@ export const register = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({ message: "User registered successfully.", userId: user.id });
+    const token = jwt.sign(
+  { userId: user.id },
+  process.env.JWT_SECRET!,
+  { expiresIn: "7d" }
+);
+
+res.status(201).json({
+  message: "User registered successfully.",
+  token,
+});
   } catch (error) {
-    res.status(500).json({ message: "Server error.", error });
+    console.error("Authentication error:", error);
+res.status(500).json({ message: "Server error." });
   }
 };
 
@@ -52,6 +62,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({ token });
   } catch (error) {
-    res.status(500).json({ message: "Server error.", error });
+    console.error("Authentication error:", error);
+    res.status(500).json({ message: "Server error." });
   }
 };

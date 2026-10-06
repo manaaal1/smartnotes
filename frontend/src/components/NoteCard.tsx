@@ -1,100 +1,144 @@
 import { useState } from "react";
-import api from "../api/axios";
 import type { Note } from "../api/notes";
+import { updateNote, deleteNote } from "../api/notes";
 import { toast } from "react-toastify";
 
 interface NoteCardProps {
   note: Note;
-  onUpdate: () => void; // called after edit or delete
+  onUpdate: () => void;
 }
 
 const NoteCard = ({ note, onUpdate }: NoteCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [errors, setErrors] = useState({ title: "", content: "" });
 
-  const validate = () => {
-    const newErrors = { title: "", content: "" };
-    if (!title.trim()) newErrors.title = "Title is required";
-    if (content.trim().length < 5) newErrors.content = "Content must be at least 5 characters";
-    setErrors(newErrors);
-    return !newErrors.title && !newErrors.content;
-  };
-
-  // Edit / Update note
   const handleUpdate = async () => {
-    if (!validate()) return;
+    if (!title.trim() || content.trim().length < 5) {
+      toast.error("Please enter a title and at least 5 characters of content.");
+      return;
+    }
+
     try {
-      await api.put(`/notes/${note.id}`, { title, content }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      await updateNote(note.id, {
+        title: title.trim(),
+        content: content.trim(),
       });
+
       toast.success("Note updated!");
       setIsEditing(false);
       onUpdate();
-    } catch (error) {
-      toast.error("Error updating note");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to update note."
+      );
     }
   };
 
-  // Delete note
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this note?")) return;
-
     try {
-      await api.delete(`/notes/${note.id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+      await deleteNote(note.id);
       toast.success("Note deleted!");
+      setShowDeleteConfirm(false);
       onUpdate();
-    } catch (error) {
-      toast.error("Error deleting note");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to delete note."
+      );
     }
   };
 
-   return (
-    <div className="p-4 border rounded shadow">
-      {isEditing ? (
-        <>
+  if (isEditing) {
+    return (
+      <article className="note-card">
+        <div className="note-edit-form">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="border p-1 mb-1 w-full"
+            className="form-input"
           />
-          {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-          
+
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="border p-1 mb-1 w-full"
+            className="form-textarea"
           />
-          {errors.content && <p className="text-red-500 text-sm">{errors.content}</p>}
 
-          <div className="flex gap-2">
-            <button onClick={handleUpdate} className="bg-blue-500 text-white px-3 py-1 rounded">
+          <div className="note-actions">
+            <button onClick={handleUpdate} className="primary-button">
               Save
             </button>
-            <button onClick={() => setIsEditing(false)} className="bg-gray-300 px-3 py-1 rounded">
+
+            <button
+              onClick={() => setIsEditing(false)}
+              className="secondary-button"
+            >
               Cancel
             </button>
           </div>
-        </>
-      ) : (
-        <>
-          <h2 className="text-xl font-semibold">{note.title}</h2>
-          <p>{note.content}</p>
-          <div className="flex gap-2 mt-2">
-            <button onClick={() => setIsEditing(true)} className="bg-yellow-400 px-3 py-1 rounded">
-              Edit
-            </button>
-            <button onClick={handleDelete} className="bg-red-500 text-white px-3 py-1 rounded">
-              Delete
-            </button>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <>
+      <article className="note-card">
+        <h2 className="note-title">{note.title}</h2>
+
+        <p className="note-content">{note.content}</p>
+
+        <div className="note-actions">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="secondary-button"
+          >
+            Edit
+          </button>
+
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="danger-button"
+          >
+            Delete
+          </button>
+        </div>
+      </article>
+
+      {showDeleteConfirm && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="delete-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>Delete note?</h2>
+
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>"{note.title}"</strong>? This action cannot be undone.
+            </p>
+
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="secondary-button"
+              >
+                Cancel
+              </button>
+
+              <button onClick={handleDelete} className="danger-button">
+                Delete
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 };
 

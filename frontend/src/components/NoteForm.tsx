@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/axios";
+import { createNote } from "../api/notes";
 import { toast } from "react-toastify";
 
 interface NoteFormProps {
@@ -9,55 +9,75 @@ interface NoteFormProps {
 const NoteForm = ({ onNoteCreated }: NoteFormProps) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [errors, setErrors] = useState({ title: "", content: "" });
-
-  const validate = () => {
-    const newErrors = { title: "", content: "" };
-    if (!title.trim()) newErrors.title = "Title is required";
-    if (content.trim().length < 5) newErrors.content = "Content must be at least 5 characters";
-    setErrors(newErrors);
-    return !newErrors.title && !newErrors.content;
-  };
+  const [errors, setErrors] = useState({
+    title: "",
+    content: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+
+    const newErrors = {
+      title: title.trim() ? "" : "Title is required.",
+      content:
+        content.trim().length >= 5
+          ? ""
+          : "Content must be at least 5 characters.",
+    };
+
+    setErrors(newErrors);
+
+    if (newErrors.title || newErrors.content) return;
 
     try {
-      await api.post("/notes", { title, content }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      await createNote({
+        title: title.trim(),
+        content: content.trim(),
       });
+
       toast.success("Note created!");
       setTitle("");
       setContent("");
+      setErrors({ title: "", content: "" });
       onNoteCreated();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to create note");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to create note."
+      );
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6">
-      <input
-        type="text"
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md px-3 py-2 shadow-sm w-full transition"
-      />
-      {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+    <form onSubmit={handleSubmit} className="note-form">
+      <h2 className="section-title">Create a note</h2>
 
-      <textarea
-        placeholder="Content"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 rounded-md px-3 py-2 shadow-sm w-full transition resize-none"
-      />
-      {errors.content && <p className="text-red-500 text-sm">{errors.content}</p>}
+      <div className="form-group">
+        <label className="form-label">Title</label>
+        <input
+          type="text"
+          placeholder="Give your note a title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="form-input"
+        />
+        {errors.title && <p className="form-error">{errors.title}</p>}
+      </div>
 
-      <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200">
-        Add Note
+      <div className="form-group">
+        <label className="form-label">Content</label>
+        <textarea
+          placeholder="Write something..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="form-textarea"
+        />
+        {errors.content && (
+          <p className="form-error">{errors.content}</p>
+        )}
+      </div>
+
+      <button type="submit" className="primary-button">
+        Add note
       </button>
     </form>
   );

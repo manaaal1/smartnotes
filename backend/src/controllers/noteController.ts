@@ -18,7 +18,7 @@ export const createNote = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: "Note created successfully.", note });
   } catch (error) {
-    console.error(error);
+    console.error("Error creating note:", error);
     res.status(500).json({ message: "Error creating note" });
   }
 };
@@ -49,6 +49,7 @@ export const getNotes = async (req: Request, res: Response) => {
 
     res.json({ message: "Notes fetched successfully.", notes });
   } catch (error) {
+    console.error("Error fetching notes:", error);
     res.status(500).json({ message: "Error fetching notes" });
   }
 };
@@ -62,9 +63,10 @@ export const getNoteById = async (req: Request, res: Response) => {
     });
     if (!note) return res.status(404).json({ message: "Note not found" });
     res.json(note);
-  } catch {
-    res.status(500).json({ message: "Error fetching note" });
-  }
+  } catch (error) {
+  console.error("Error fetching note:", error);
+  res.status(500).json({ message: "Error fetching note" });
+}
 };
 
 export const updateNote = async (req: Request, res: Response) => {
@@ -86,9 +88,10 @@ export const updateNote = async (req: Request, res: Response) => {
 
     if (note.count === 0) return res.status(404).json({ message: "Note not found" });
     res.json({ message: "Note updated successfully" });
-  } catch {
-    res.status(500).json({ message: "Error updating note" });
-  }
+  } catch (error) {
+  console.error("Error updating note:", error);
+  res.status(500).json({ message: "Error updating note" });
+}
 };
 
 export const deleteNote = async (req: Request, res: Response) => {
@@ -102,7 +105,8 @@ export const deleteNote = async (req: Request, res: Response) => {
 
     if (note.count === 0) return res.status(404).json({ message: "Note not found" });
     res.json({ message: "Note deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Error deleting note" });
-  }
+  } catch (error) {
+  console.error("Error deleting note:", error);
+  res.status(500).json({ message: "Error deleting note" });
+}
 };
